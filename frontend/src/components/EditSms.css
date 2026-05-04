@@ -1,0 +1,76 @@
+.edit-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.edit-card {
+  background: white;
+  border-radius: 10px;
+  padding: 40px;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+
+.edit-card h2 {
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.edit-card p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.edit-card textarea {
+  width: 100%;
+  padding: 15px;
+  border: 2px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
+  font-family: monospace;
+  resize: vertical;
+  margin-bottom: 20px;
+}
+
+.edit-card textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.edit-buttons button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.edit-buttons button[type="submit"] {
+  background: #28a745;
+  color: white;
+}
+
+.edit-buttons button[type="button"] {
+  background: #6c757d;
+  color: white;
+}
+
+.message {
+  margin-top: 20px;
+  padding: 10px;
+  border-radius: 5px;
+  text-align: center;
+  background: #d4edda;
+  color: #155724;
+}
