@@ -7,6 +7,7 @@ const Register = () => {
   const [step, setStep] = useState('code');
   const [accessCode, setAccessCode] = useState('');
   const [codeError, setCodeError] = useState('');
+  const [codeLoading, setCodeLoading] = useState(false);
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -16,13 +17,23 @@ const Register = () => {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  const API_URL = 'http://localhost:5000/api';
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
   const handleCodeSubmit = async (e) => {
     e.preventDefault();
+    setCodeLoading(true);
+    setCodeError('');
+    
+    if (!accessCode) {
+      setCodeError('Please enter access code');
+      setCodeLoading(false);
+      return;
+    }
+    
     try {
       const response = await axios.post(`${API_URL}/auth/validate-code`, {
         code: accessCode
@@ -31,9 +42,14 @@ const Register = () => {
       if (response.data.valid) {
         setStep('form');
         setCodeError('');
+      } else {
+        setCodeError('Invalid access code. Please try again.');
       }
     } catch (err) {
-      setCodeError('Invalid access code. Please try again.');
+      console.error('Code validation error:', err);
+      setCodeError(err.response?.data?.message || 'Invalid access code. Please try again.');
+    } finally {
+      setCodeLoading(false);
     }
   };
 
@@ -43,22 +59,45 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = await register(formData);
-    if (result.success) {
-      setSuccess('Registration successful! Please login.');
-      setTimeout(() => navigate('/login'), 2000);
-    } else {
-      setError(result.error);
+    setLoading(true);
+    setError('');
+    
+    if (!formData.first_name || !formData.last_name || !formData.email || !formData.password || !formData.phone) {
+      setError('All fields are required');
+      setLoading(false);
+      return;
+    }
+    
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      const result = await register({ ...formData, accessCode });
+      if (result.success) {
+        setSuccess('Registration successful! Please login.');
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      } else {
+        setError(result.error || 'Registration failed. Please try again.');
+      }
+    } catch (err) {
+      setError('Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   // Step 1: Access Code Page
   if (step === 'code') {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-900 via-purple-800 to-pink-700">
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 w-full max-w-md shadow-2xl border border-white/20">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-800 to-pink-700 p-4">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 w-full max-w-md shadow-2xl border border-white/20 fade-in slide-up">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl shadow-lg mb-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl shadow-lg mb-4 mx-auto">
               <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
@@ -81,13 +120,15 @@ const Register = () => {
               onChange={(e) => setAccessCode(e.target.value)}
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 text-center text-xl tracking-wider"
               maxLength="7"
+              autoFocus
               required
             />
             <button
               type="submit"
-              className="w-full mt-6 bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-3 rounded-lg font-bold hover:opacity-90 transition"
+              disabled={codeLoading}
+              className="w-full mt-6 bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-3 rounded-lg font-bold hover:opacity-90 transition disabled:opacity-50"
             >
-              Verify & Continue
+              {codeLoading ? 'Verifying...' : 'Verify & Continue'}
             </button>
           </form>
 
@@ -101,27 +142,32 @@ const Register = () => {
 
   // Step 2: Registration Form
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-900 via-purple-800 to-pink-700 p-4">
-      <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 w-full max-w-md shadow-2xl border border-white/20">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-800 to-pink-700 p-4">
+      <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 w-full max-w-md shadow-2xl border border-white/20 fade-in slide-up">
         <div className="text-center mb-6">
-          <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>
-          <p className="text-indigo-200">Join Travolium today!</p>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl shadow-lg mb-4 mx-auto">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-white">Create Account</h2>
+          <p className="text-indigo-200 text-sm">Join Travolium today!</p>
         </div>
         
         {error && (
-          <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-2 rounded-lg mb-4">
+          <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-center text-sm">
             {error}
           </div>
         )}
         
         {success && (
-          <div className="bg-green-500/20 border border-green-500/50 text-green-200 px-4 py-2 rounded-lg mb-4">
+          <div className="mb-4 p-3 bg-green-500/20 border border-green-500/50 rounded-lg text-green-200 text-center text-sm">
             {success}
           </div>
         )}
         
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-2 gap-3 mb-3">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             <input
               type="text"
               name="first_name"
@@ -142,51 +188,46 @@ const Register = () => {
             />
           </div>
           
-          <div className="mb-3">
-            <input
-              type="email"
-              name="email"
-              placeholder="Email address"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-              required
-            />
-          </div>
+          <input
+            type="email"
+            name="email"
+            placeholder="Email address"
+            value={formData.email}
+            onChange={handleChange}
+            className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            required
+          />
           
-          <div className="mb-3">
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-              required
-            />
-          </div>
+          <input
+            type="password"
+            name="password"
+            placeholder="Password (min 6 characters)"
+            value={formData.password}
+            onChange={handleChange}
+            className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            required
+          />
           
-          <div className="mb-6">
-            <input
-              type="tel"
-              name="phone"
-              placeholder="Phone Number"
-              value={formData.phone}
-              onChange={handleChange}
-              className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-              required
-            />
-          </div>
+          <input
+            type="tel"
+            name="phone"
+            placeholder="Phone Number"
+            value={formData.phone}
+            onChange={handleChange}
+            className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            required
+          />
           
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-2 rounded-lg font-bold hover:opacity-90 transition"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-2 rounded-lg font-bold hover:opacity-90 transition disabled:opacity-50"
           >
-            Register
+            {loading ? 'Creating account...' : 'Register'}
           </button>
         </form>
         
-        <p className="text-center mt-4 text-indigo-200">
+        <p className="text-center mt-4 text-indigo-200 text-sm">
           Already have an account?{' '}
           <Link to="/login" className="text-yellow-400 hover:text-yellow-300 font-semibold">
             Login here

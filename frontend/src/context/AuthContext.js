@@ -10,7 +10,10 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
+  // 🔥 Hindura iyi URL (shyiramo backend yawe)
   const API_URL = 'http://localhost:5000/api';
+  // Niba udeploye backend kuri Render, koresha:
+  // const API_URL = 'https://travolium-backend.onrender.com/api';
 
   axios.interceptors.request.use((config) => {
     if (token) {
