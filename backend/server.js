@@ -1,15 +1,19 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const mysql = require('mysql2/promise');
+const path = require('path');
 
 dotenv.config();
 
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: ['https://travolium-frontend.onrender.com', 'http://localhost:3000', 'http://localhost:5500'],
+    credentials: true
+}));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Logger
 app.use((req, res, next) => {
@@ -17,103 +21,101 @@ app.use((req, res, next) => {
     next();
 });
 
-// Database connection pool
-const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'travolium_db',
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+// Serve static frontend files (kugira ngo frontend iboneke)
+app.use(express.static(path.join(__dirname, '../frontend')));
+
+// ==================== AUTH ROUTES ====================
+
+// Validate access code
+app.post('/api/auth/validate-code', (req, res) => {
+    const { accessCode } = req.body;
+    const validCode = process.env.ACCESS_CODE || '1228601';
+    
+    if (accessCode === validCode) {
+        res.json({ success: true, message: 'Access code validated successfully' });
+    } else {
+        res.status(401).json({ success: false, message: 'Invalid access code' });
+    }
 });
 
-// Make pool available to routes
-app.locals.db = pool;
+// Login endpoint (KORA NEZA)
+app.post('/api/auth/login', (req, res) => {
+    const { email, password } = req.body;
+    
+    console.log(`Login attempt: ${email}`);
+    
+    // Demo credentials - BYA NYIRIZINA
+    const validEmail = 'admin@travolium.com';
+    const validPassword = 'admin123';
+    
+    if (email === validEmail && password === validPassword) {
+        res.json({
+            success: true,
+            message: 'Login successful',
+            user: {
+                id: 1,
+                email: email,
+                name: 'Admin User',
+                role: 'admin'
+            }
+        });
+    } else {
+        res.status(401).json({
+            success: false,
+            message: 'Invalid email or password'
+        });
+    }
+});
 
-// Import routes (with error handling for missing files)
-try {
-    app.use('/api/auth', require('./routes/auth'));
-    console.log('✅ Auth routes loaded');
-} catch (err) {
-    console.error('❌ Failed to load auth routes:', err.message);
-}
-
-try {
-    app.use('/api/tasks', require('./routes/tasks'));
-    console.log('✅ Tasks routes loaded');
-} catch (err) {
-    console.log('⚠️ Tasks routes not found (optional)');
-}
-
-try {
-    app.use('/api/deposits', require('./routes/deposits'));
-    console.log('✅ Deposits routes loaded');
-} catch (err) {
-    console.log('⚠️ Deposits routes not found (optional)');
-}
-
-try {
-    app.use('/api/withdrawals', require('./routes/withdrawals'));
-    console.log('✅ Withdrawals routes loaded');
-} catch (err) {
-    console.log('⚠️ Withdrawals routes not found (optional)');
-}
-
-try {
-    app.use('/api/admin', require('./routes/admin'));
-    console.log('✅ Admin routes loaded');
-} catch (err) {
-    console.log('⚠️ Admin routes not found (optional)');
-}
-
-try {
-    app.use('/api/sms', require('./routes/sms'));
-    console.log('✅ SMS routes loaded');
-} catch (err) {
-    console.log('⚠️ SMS routes not found (optional)');
-}
-
-try {
-    app.use('/api/video-approval', require('./routes/video-approval'));
-    console.log('✅ Video approval routes loaded');
-} catch (err) {
-    console.log('⚠️ Video approval routes not found (optional)');
-}
-
-try {
-    app.use('/api/videos', require('./routes/admin-videos'));
-    console.log('✅ Admin videos routes loaded');
-} catch (err) {
-    console.log('⚠️ Admin videos routes not found (optional)');
-}
-
-try {
-    app.use('/api/password-reset', require('./routes/password-reset'));
-    console.log('✅ Password reset routes loaded');
-} catch (err) {
-    console.log('⚠️ Password reset routes not found (optional)');
-}
-
-// Serve static frontend files (if exists)
-const path = require('path');
-const fs = require('fs');
-const frontendPath = path.join(__dirname, '../frontend');
-if (fs.existsSync(frontendPath)) {
-    app.use(express.static(frontendPath));
-    console.log('✅ Frontend static files enabled');
-}
-
-// Test route
-app.get('/', (req, res) => {
-    res.json({ 
-        message: 'Travolium API is running', 
-        version: '1.0.0',
-        status: 'online'
+// Register endpoint
+app.post('/api/auth/register', (req, res) => {
+    const { name, email, password } = req.body;
+    
+    res.status(201).json({
+        success: true,
+        message: 'User registered successfully',
+        user: { name, email }
     });
 });
 
-// Health check for Render
+// ==================== OTHER ROUTES (OPTIONAL) ====================
+
+// Mock routes for tasks, deposits, etc. (ibyo nta module zihari)
+app.use('/api/tasks', (req, res) => {
+    res.json({ message: 'Tasks endpoint - coming soon' });
+});
+
+app.use('/api/deposits', (req, res) => {
+    res.json({ message: 'Deposits endpoint - coming soon' });
+});
+
+app.use('/api/withdrawals', (req, res) => {
+    res.json({ message: 'Withdrawals endpoint - coming soon' });
+});
+
+app.use('/api/admin', (req, res) => {
+    res.json({ message: 'Admin endpoint - coming soon' });
+});
+
+app.use('/api/sms', (req, res) => {
+    res.json({ message: 'SMS endpoint - coming soon' });
+});
+
+app.use('/api/video-approval', (req, res) => {
+    res.json({ message: 'Video approval endpoint - coming soon' });
+});
+
+app.use('/api/videos', (req, res) => {
+    res.json({ message: 'Videos endpoint - coming soon' });
+});
+
+app.use('/api/password-reset', (req, res) => {
+    res.json({ message: 'Password reset endpoint - coming soon' });
+});
+
+// ==================== TEST ROUTES ====================
+
+// Health check (kugira ngo Render ibone niba app ikora)
 app.get('/health', (req, res) => {
     res.status(200).json({ 
         status: 'OK', 
@@ -122,32 +124,55 @@ app.get('/health', (req, res) => {
     });
 });
 
-app.get('/test-db', async (req, res) => {
-    try {
-        const [rows] = await pool.query('SELECT NOW() as time, DATABASE() as db_name');
-        res.json({ success: true, time: rows[0].time, database: rows[0].db_name });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+// Root route
+app.get('/', (req, res) => {
+    res.json({ 
+        message: 'Travolium API is running', 
+        version: '1.0.0',
+        status: 'online',
+        endpoints: {
+            health: '/health',
+            login: '/api/auth/login',
+            validate: '/api/auth/validate-code'
+        }
+    });
 });
 
-// Error handlers
+// Test DB route (idafite database, igaruka mock)
+app.get('/test-db', (req, res) => {
+    res.json({ 
+        message: 'Database not configured',
+        mode: 'mock mode',
+        success: true 
+    });
+});
+
+// ==================== ERROR HANDLERS ====================
+
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({ 
+        success: false,
+        message: `Route ${req.url} not found` 
+    });
+});
+
+// Error handler
 app.use((err, req, res, next) => {
-    console.error('❌ Error:', err.stack);
+    console.error('Error:', err.stack);
     res.status(500).json({ 
+        success: false,
         message: 'Something went wrong!', 
         error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message 
     });
 });
 
-app.use((req, res) => {
-    res.status(404).json({ message: `Route ${req.url} not found` });
-});
-
-// Start server
+// ==================== START SERVER ====================
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`📍 API URL: http://localhost:${PORT}`);
-    console.log(`🩺 Health check: /health`);
+    console.log(`🩺 Health check: http://localhost:${PORT}/health`);
+    console.log(`🔐 Login endpoint: POST http://localhost:${PORT}/api/auth/login`);
+    console.log(`🌐 Frontend served from: ${path.join(__dirname, '../frontend')}`);
 });
